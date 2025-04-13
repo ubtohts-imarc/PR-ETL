@@ -1,0 +1,23 @@
+name: "sunsirs_monitor"
+base_url: "https://www.sunsirs.com/uk/sdetail-day-REPLACEDATEHERE.html"
+required_headers : ["Commodity", "Sectors"]
+validation:
+  price:
+    type: "number"
+    min: 0
+    max: 1000000
+  title:
+    type: "string"
+    min_length: 3
+    max_length: 200
+transformation:
+  price:
+    type: "float"
+    decimal_places: 2
+  title:
+    type: "string"
+    trim: true
+    lowercase: true
+retry:
+  max_attempts: 3
+  delay_seconds: 5 

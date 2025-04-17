@@ -20,4 +20,21 @@ transformation:
     lowercase: true
 retry:
   max_attempts: 3
-  delay_seconds: 5 
+  delay_seconds: 5
+
+llm_task: extract_commodity_units
+model: deepseek-r1-distill-llama-70b
+prompt_template: |
+  You are a strict JSON API that extracts commodity pricing information from semi-structured remarks.
+
+  Instructions:
+  1. Extract the default price/weight unit from the text if declared.
+  2. For each commodity:
+     - Use its own unit if present.
+     - Otherwise, fall back to the default.
+  3. Respond only with valid JSON using this format:
+
+  {{schema}}
+
+  Input:
+  "{{input}}"

@@ -1,10 +1,11 @@
-version: '3.8'
-
 x-common-env: &common-env
   AIRFLOW__CORE__EXECUTOR: LocalExecutor
-  AIRFLOW__CORE__SQL_ALCHEMY_CONN: postgresql+psycopg2://airflow:airflow@postgres/airflow
+  AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: postgresql+psycopg2://airflow:airflow@postgres/airflow
   AIRFLOW__CORE__FERNET_KEY: ''
   AIRFLOW__CORE__LOAD_EXAMPLES: 'false'
+  AIRFLOW__CORE__DAG_DISCOVERY_SAFE_MODE: 'false'
+  PYTHONPATH: /opt/airflow
+  AIRFLOW__CORE__DAGS_FOLDER: /opt/airflow/airflow/dags
 
 services:
   postgres:
@@ -12,6 +13,10 @@ services:
     container_name: postgres_db
     restart: always
     env_file: .env
+    environment:
+      POSTGRES_USER: airflow
+      POSTGRES_PASSWORD: airflow
+      POSTGRES_DB: airflow
     ports:
       - "5432:5432"
     volumes:
@@ -22,7 +27,9 @@ services:
       retries: 5
 
   airflow-webserver:
-    image: apache/airflow:2.7.0
+    build:
+      context: .
+      dockerfile: Dockerfile
     container_name: airflow_web
     depends_on:
       - postgres
@@ -31,10 +38,6 @@ services:
       - "8080:8080"
     environment:
       <<: *common-env
-    volumes:
-      - ./dags:/opt/airflow/dags
-      - ./extractors:/opt/airflow/extractors
-      - ./config:/opt/airflow/config
     command: webserver
     healthcheck:
       test: ["CMD", "curl", "--fail", "http://localhost:8080/health"]
@@ -43,17 +46,15 @@ services:
       retries: 5
 
   airflow-scheduler:
-    image: apache/airflow:2.7.0
+    build:
+      context: .
+      dockerfile: Dockerfile
     container_name: airflow_scheduler
     depends_on:
       - airflow-webserver
       - airflow-init
     environment:
       <<: *common-env
-    volumes:
-      - ./dags:/opt/airflow/dags
-      - ./extractors:/opt/airflow/extractors
-      - ./config:/opt/airflow/config
     command: scheduler
     healthcheck:
       test: ["CMD", "curl", "--fail", "http://localhost:8080/health"]
@@ -62,24 +63,27 @@ services:
       retries: 5
 
   airflow-init:
-    image: apache/airflow:2.7.0
+    build:
+      context: .
+      dockerfile: Dockerfile
     container_name: airflow_init
     depends_on:
       - postgres
     environment:
       <<: *common-env
-      AIRFLOW__CORE__LOAD_EXAMPLES: 'false'
-    volumes:
-      - ./dags:/opt/airflow/dags
-      - ./extractors:/opt/airflow/extractors
-      - ./config:/opt/airflow/config
     entrypoint: /bin/bash
     command:
       - -c
       - |
-        mkdir -p /sources/logs /sources/dags /sources/plugins
-        chown -R "${AIRFLOW_UID}:0" /sources/{logs,dags,plugins}
-        exec airflow db init
+        mkdir -p /opt/airflow/logs /opt/airflow/dags /opt/airflow/plugins
+        airflow db migrate
+        airflow users create \
+          --username "$AIRFLOW_USERNAME" \
+          --firstname "$AIRFLOW_FIRSTNAME" \
+          --lastname "$AIRFLOW_LASTNAME" \
+          --role Admin \
+          --email "$AIRFLOW_EMAIL" \
+          --password "$AIRFLOW_PASSWORD"
     restart: on-failure
 
 volumes:

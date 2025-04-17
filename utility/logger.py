@@ -2,6 +2,7 @@ import logging
 import os
 import datetime
 import inspect
+import pandas as pd
 
 def get_logger():
     # Identify the script that initiated the logging
@@ -32,4 +33,18 @@ def get_logger():
         file_handler.setFormatter(formatter)
         logger.addHandler(file_handler)
     
+
+    # Add a method to log full DataFrames
+    def log_dataframe(df: pd.DataFrame, message: str = ""):
+        """
+        Log the entire DataFrame without truncation.
+        Args:
+            df (pd.DataFrame): The DataFrame to log.
+            message (str): Optional message to include before the DataFrame.
+        """
+        with pd.option_context('display.max_rows', None, 'display.max_columns', None, 'display.width', 1000):
+            logger.debug(f"{message}\n{df}")
+    
+    logger.log_dataframe = log_dataframe  # Attach the method to the logger
+
     return logger

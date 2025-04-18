@@ -2,7 +2,7 @@ from __future__ import annotations
 from airflow import DAG
 from airflow.operators.python import PythonOperator
 from utility.logger import get_logger
-from websites.sunsirs import SunsirsExtractor
+from websites.sunsirs import SunsirsExtractor, SunsirsTransformer
 from sqlalchemy import create_engine
 from datetime import datetime
 import pandas as pd
@@ -27,9 +27,33 @@ def _extract(**kwargs):
     kwargs['ti'].xcom_push(key="data", value=df.to_dict(orient="records"))
     logger.info("Data pushed to XCom.")
 
+def _transform(**kwargs):
+    records = kwargs['ti'].xcom_pull(task_ids="extract", key="data")
+
+    if not records:
+        raise ValueError("No data received from extract.")
+
+    df = pd.DataFrame(records)
+    logger.info(f"Loading {len(df)} rows into database...")
+    
+    data = SunsirsTransformer().transform(df)
+    df = data.get("uom_transformed_data")
+
+    if df is None or df.empty:
+        raise ValueError("No data extracted.")
+
+    # Convert datetime columns to string for JSON serialization
+    for col in df.columns:
+        if pd.api.types.is_datetime64_any_dtype(df[col]):
+            df[col] = df[col].astype(str)  # or df[col].dt.strftime("%Y-%m-%d")
+
+    # Push cleaned data to XCom
+    kwargs['ti'].xcom_push(key="data", value=df.to_dict(orient="records"))
+    logger.info("Data pushed to XCom.")
+
 
 def _load(**kwargs):
-    records = kwargs['ti'].xcom_pull(task_ids="extract", key="data")
+    records = kwargs['ti'].xcom_pull(task_ids="transform", key="data")
 
     if not records:
         raise ValueError("No data received from extract.")
@@ -56,10 +80,16 @@ with DAG(
         provide_context=True,
     )
 
+    transform = PythonOperator(
+        task_id="transform",
+        python_callable=_transform,
+        provide_context=True,
+    )
+
     load = PythonOperator(
         task_id="load",
         python_callable=_load,
         provide_context=True,
     )
 
-    extract >> load
+    extract >> transform >> load

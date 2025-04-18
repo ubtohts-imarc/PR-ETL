@@ -63,7 +63,7 @@ class SunsirsTransformer(BaseTransformer):
         uom_converted_data = self.merge_uom_metadata_to_df(df=input_converted_data, metadata=website_uom_data)
         logger.info(f"Final TransformedData: {uom_converted_data.head(100)}\nTransformedData Shape: {uom_converted_data.shape}")
         
-        return uom_converted_data
+        return {'uom_transformed_data': uom_converted_data}
 
 
 class SunsirsExtractor(BaseExtractor):

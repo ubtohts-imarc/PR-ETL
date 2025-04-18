@@ -5,7 +5,7 @@ import requests
 from requests.exceptions import HTTPError, Timeout, RequestException
 import pandas as pd
 
-from transform.uom_conversation import UOMConverter
+from transform.uom_conversion import UOMConverter
 from utility.logger import get_logger
 
 logger = get_logger()

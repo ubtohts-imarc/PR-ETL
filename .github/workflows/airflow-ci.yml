@@ -1,0 +1,57 @@
+name: CI - Apache Airflow
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  airflow-ci:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Set up Docker Compose
+        run: sudo apt-get install docker-compose -y
+
+      - name: Create .env file
+        run: |
+          cat <<EOF > .env
+          AIRFLOW_UID=${{ secrets.AIRFLOW_UID }}
+          POSTGRES_USER=${{ secrets.POSTGRES_USER }}
+          POSTGRES_PASSWORD=${{ secrets.POSTGRES_PASSWORD }}
+          POSTGRES_DB=${{ secrets.POSTGRES_DB }}
+          AIRFLOW_USERNAME=${{ secrets.AIRFLOW_USERNAME }}
+          AIRFLOW_PASSWORD=${{ secrets.AIRFLOW_PASSWORD }}
+          AIRFLOW_FIRSTNAME=${{ secrets.AIRFLOW_FIRSTNAME }}
+          AIRFLOW_LASTNAME=${{ secrets.AIRFLOW_LASTNAME }}
+          AIRFLOW_EMAIL=${{ secrets.AIRFLOW_EMAIL }}
+          EOF
+
+      - name: Build and Start Airflow Stack
+        run: docker-compose up -d --build
+
+      - name: Wait for Airflow Webserver to be Healthy
+        run: |
+          echo "Waiting for Airflow webserver to be healthy..."
+          for i in {1..30}; do
+            status=$(docker inspect --format='{{json .State.Health.Status}}' airflow_web)
+            if [ "$status" == "\"healthy\"" ]; then
+              echo "Airflow webserver is healthy!"
+              break
+            fi
+            echo "Waiting... ($i)"
+            sleep 10
+          done
+
+      - name: List Airflow DAGs to verify installation
+        run: docker exec airflow_web airflow dags list
+
+      - name: Shutdown and Cleanup
+        if: always()
+        run: docker-compose down --volumes --remove-orphans

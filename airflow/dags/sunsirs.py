@@ -3,72 +3,29 @@ from airflow import DAG
 from airflow.operators.python import PythonOperator
 from utility.logger import get_logger
 from websites.sunsirs import SunsirsExtractor, SunsirsTransformer
-from sqlalchemy import create_engine
 from datetime import datetime
-import pandas as pd
 
 logger = get_logger()
 
-DATABASE_URL = "postgresql+psycopg2://airflow:airflow@postgres:5432/airflow"
+def _extract():
+    try:
+        extractor = SunsirsExtractor()
+        extracted_data = extractor.extract()
+        logger.info(f"Extracted data: {extracted_data}")
+    except Exception as e:
+        logger.error(f"Error during extraction: {str(e)}")
 
-def _extract(**kwargs):
-    data = SunsirsExtractor().extract()
-    df = data.get("extracted_data")
-
-    if df is None or df.empty:
-        raise ValueError("No data extracted.")
-
-    # Convert datetime columns to string for JSON serialization
-    for col in df.columns:
-        if pd.api.types.is_datetime64_any_dtype(df[col]):
-            df[col] = df[col].astype(str)  # or df[col].dt.strftime("%Y-%m-%d")
-
-    # Push cleaned data to XCom
-    kwargs['ti'].xcom_push(key="data", value=df.to_dict(orient="records"))
-    logger.info("Data pushed to XCom.")
-
-def _transform(**kwargs):
-    records = kwargs['ti'].xcom_pull(task_ids="extract", key="data")
-
-    if not records:
-        raise ValueError("No data received from extract.")
-
-    df = pd.DataFrame(records)
-    logger.info(f"Loading {len(df)} rows into database...")
-    
-    data = SunsirsTransformer().transform(df)
-    df = data.get("uom_transformed_data")
-
-    if df is None or df.empty:
-        raise ValueError("No data extracted.")
-
-    # Convert datetime columns to string for JSON serialization
-    for col in df.columns:
-        if pd.api.types.is_datetime64_any_dtype(df[col]):
-            df[col] = df[col].astype(str)  # or df[col].dt.strftime("%Y-%m-%d")
-
-    # Push cleaned data to XCom
-    kwargs['ti'].xcom_push(key="data", value=df.to_dict(orient="records"))
-    logger.info("Data pushed to XCom.")
-
-
-def _load(**kwargs):
-    records = kwargs['ti'].xcom_pull(task_ids="transform", key="data")
-
-    if not records:
-        raise ValueError("No data received from extract.")
-
-    df = pd.DataFrame(records)
-    logger.info(f"Loading {len(df)} rows into database...")
-
-    engine = create_engine(DATABASE_URL)
-    with engine.begin() as connection:
-        df.to_sql("sunsirs_data", con=connection, if_exists="append", index=False)
-        logger.info("Data successfully loaded into database.")
+def _transform():
+    try:
+        transform = SunsirsTransformer()
+        extracted_data = transform.transform()
+        logger.info(f"Transformed data: {extracted_data}")
+    except Exception as e:
+        logger.error(f"Error during transformation: {str(e)}")
 
 with DAG(
     dag_id="sunsirs_etl",
-    start_date=datetime(2023, 1, 1),
+    start_date=datetime(2025, 1, 1),
     schedule="@daily",
     catchup=False,
     tags=["sunsirs"],
@@ -86,10 +43,36 @@ with DAG(
         provide_context=True,
     )
 
-    load = PythonOperator(
-        task_id="load",
-        python_callable=_load,
+    extract >> transform
+
+with DAG(
+    dag_id="sunsirs_extract",
+    start_date=datetime(2025, 1, 1),
+    schedule="@daily",
+    catchup=False,
+    tags=["sunsirs"],
+) as dag:
+
+    extract = PythonOperator(
+        task_id="extract",
+        python_callable=_extract,
         provide_context=True,
     )
 
-    extract >> transform >> load
+    extract
+
+with DAG(
+    dag_id="sunsirs_transform",
+    start_date=datetime(2025, 1, 1),
+    schedule="@daily",
+    catchup=False,
+    tags=["sunsirs"],
+) as dag:
+
+    transform = PythonOperator(
+        task_id="transform",
+        python_callable=_transform,
+        provide_context=True,
+    )
+
+    transform

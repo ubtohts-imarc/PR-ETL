@@ -1,26 +1,7 @@
 name: "sunsirs_monitor"
+start_date: '2025-04-15'
 base_url: "https://www.sunsirs.com/uk/sdetail-day-REPLACEDATEHERE.html"
 required_headers : ["Commodity", "Sectors"]
-validation:
-  price:
-    type: "number"
-    min: 0
-    max: 1000000
-  title:
-    type: "string"
-    min_length: 3
-    max_length: 200
-transformation:
-  price:
-    type: "float"
-    decimal_places: 2
-  title:
-    type: "string"
-    trim: true
-    lowercase: true
-retry:
-  max_attempts: 3
-  delay_seconds: 5
 
 llm_task: extract_commodity_units
 model: deepseek-r1-distill-llama-70b

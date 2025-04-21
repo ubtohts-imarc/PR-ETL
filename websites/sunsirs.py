@@ -6,50 +6,27 @@ from dateutil import parser
 import re
 
 from extract.base_extractor import BaseExtractor
-from extract.llm_extractor import extract_units
-from loader.base_validator import BaseValidator
+from loader.base_loader import BaseLoader
 from transform.base_transformer import BaseTransformer
 from utility.logger import get_logger
 from utility.yaml_loader import load_yaml_config
 
+from loader.raw_data_store import RawPriceWriter
+from loader.raw_data_reader import RawPriceFetcher
+from loader.transformed_data_store import StandardizedPriceWriter
+
 logger = get_logger()
 config = load_yaml_config("config/websites/sunsirs.yaml")
 
-class SunsirsValidator(BaseValidator):
-    def validate(self, data: Dict[str, Any]) -> bool:
-        """Custom validation for Sunsirs data"""
-        if not super().validate(data):
-            return False
-            
-        required_fields = ['Product', 'Date', 'Initial Price']
-        for field in required_fields:
-            if field not in data:
-                logger.error(f"Missing required field: {field}")
-                return False
-                
-        # Add more specific validation rules here
-        return True
-
 class SunsirsTransformer(BaseTransformer):
-    def transform(self, data: pd.DataFrame) -> Dict[str, Any]:
+    def transform(self) -> Dict[str, Any]:
         """Transform extracted Sunsirs data"""
-        website_input_data = self.fetch_input_metadata('sunsirs')
-        if not website_input_data:
-            logger.error("No metadata fetched for transformation.")
-            
-        # Merge metadata into DataFrame
-        # logger.info(f"Initial Data: {type(data)}")
-        if isinstance(data, dict):
-            data = data.get('extracted_data', pd.DataFrame())
-        
-        data = self.merge_input_metadata_to_df(df=data, key_column='Commodity', metadata=website_input_data)
-        logger.info(f"Input TransformedData: {data.head(100)}\nTransformedData Shape: {data.shape}")
 
-        input_converted_data = self.rename_columns(rename_map={
-            'Price': 'Input Price',
-            'volume': 'Input Quantity Unit',
-        }, df=data)
-        logger.info(f"Rename TransformedData: {data.head(100)}\nTransformedData Shape: {data.shape}")
+        fetcher = RawPriceFetcher("sunsirs")
+        data = fetcher.fetch()
+
+        logger.info(f"Fetched Data: {list(data.columns)}")
+        # logger.info(f"Input TransformedData: {data.head(100)}\nTransformedData Shape: {data.shape}")
 
         website_uom_data = self.fetch_uom_metadata()
         if not website_uom_data:
@@ -57,14 +34,21 @@ class SunsirsTransformer(BaseTransformer):
             
         # Merge metadata into DataFrame
         # logger.info(f"Initial Data: {type(data)}")
-        if isinstance(input_converted_data, dict):
-            input_converted_data = input_converted_data.get('extracted_data', pd.DataFrame())
+        if isinstance(data, dict):
+            data = data.get('extracted_data', pd.DataFrame())
         
-        uom_converted_data = self.merge_uom_metadata_to_df(df=input_converted_data, metadata=website_uom_data)
-        logger.info(f"Final TransformedData: {uom_converted_data.head(100)}\nTransformedData Shape: {uom_converted_data.shape}")
+        uom_converted_data = self.merge_uom_metadata_to_df(df=data, metadata=website_uom_data)
+        logger.info(f"Final TransformedData: {uom_converted_data.head(1)}\nTransformedData Shape: {uom_converted_data.shape}")
+        first_row_values = uom_converted_data.iloc[0].tolist()
+        logger.info(f"First row values: {first_row_values}")
         
-        return {'uom_transformed_data': uom_converted_data}
+        if not uom_converted_data.empty:
+            writer = StandardizedPriceWriter(df=uom_converted_data, source_name="sunsirs")
+            writer.save()
+            logger.info(f"Data saved successfully for {len(uom_converted_data)} records.")
+            return True
 
+        return True
 
 class SunsirsExtractor(BaseExtractor):
     def parse_header_dates(self, headers: list) -> dict:
@@ -178,16 +162,9 @@ class SunsirsExtractor(BaseExtractor):
             logger.error(f"Error filtering columns by date: {str(e)}")
             return df
     
-    # def extract_remarks_from_html(self, html: str) -> str:
-    #     soup = BeautifulSoup(html, "html.parser")
-    #     remarks_div = soup.find("div", string=lambda s: s and "Remarks" in s)
-    #     if remarks_div:
-    #         return remarks_div.get_text(strip=True).replace("Remarks:", "").strip()
-    #     return ""
-    
     def extract(self) -> Dict[str, Any]:
         """Extract data from Sunsirs website for date range"""
-        start_date = pd.to_datetime('2025-04-15')
+        start_date = pd.to_datetime(config['start_date'])
         end_date = pd.to_datetime('today')
         dates = pd.date_range(start_date, end_date)
         final_df = pd.DataFrame()
@@ -201,28 +178,16 @@ class SunsirsExtractor(BaseExtractor):
                     method="GET"
                 )
 
-                # # Step-1: Extract remarks from HTML content
-                # remarks = self.extract_remarks_from_html(html_content)
-                # logger.info(f"Remarks: {remarks}")
-                # unit_mapping = extract_units(remarks=remarks, config=config)
-
-                # Step-2: Extract the exact tables by providing required headers
+                # Step-1: Extract the exact tables by providing required headers
                 df = self.extract_tables(html_content, config['required_headers'])
                 logger.info(f"Extracted DataFrame: {df.head(2)}. ExtractedData Shape: {df.shape}")
                 
-                # Step-3: Convert date columns to datetime and filter by date
+                # Step-2: Convert date columns to datetime and filter by date
                 filtered_df = self.filter_columns_by_date(df, date)
                 logger.info(f"Extracted Converted DataFrame: {filtered_df.head(2)}. ExtractedData Shape: {filtered_df.shape}")
                 
-                # Step-4: Apply unit mapping to the filtered DataFrame
+                # Step-3: Apply unit mapping to the filtered DataFrame
                 if not filtered_df.empty:
-                    # def resolve_unit(row):
-                    #     name = row['Commodity']
-                    #     unit = unit_mapping.commodities.get(name, unit_mapping.default)
-                    #     return pd.Series([unit.price, unit.weight])
-
-                    # filtered_df[['price_unit', 'weight_unit']] = filtered_df.apply(resolve_unit, axis=1)
-
                     logger.info(f"Extracted Date: {date}. ExtractedData: {filtered_df.head(2)}. ExtractedData Shape: {filtered_df.shape}")
                     final_df = pd.concat([final_df, filtered_df], ignore_index=True)
                 else:
@@ -230,10 +195,22 @@ class SunsirsExtractor(BaseExtractor):
 
             except Exception as e:
                 logger.error(f"Failed to extract data for {date}: {str(e)}")
-                continue
         
         logger.info(f"Final ExtractedData: {final_df.head(100)}\nExtractedData Shape: {final_df.shape}")
-        return {'extracted_data': final_df}
+
+        if not final_df.empty:
+            final_df = final_df.rename(columns={
+                'Commodity': 'product',
+                'Sectors': 'product_category',
+                'Price': 'price_value',
+                'Date': 'price_date'
+            })
+            writer = RawPriceWriter(df=final_df, source_name="sunsirs")
+            writer.save()
+            logger.info(f"Data saved successfully for {len(final_df)} records.")
+            return True
+        
+        return False
     
 def main():
     if config is None:
@@ -248,9 +225,9 @@ def main():
         logger.error("Data extraction failed.")
 
     transformer = SunsirsTransformer()
-    transformed_data = transformer.transform(extracted_data)
+    transformed_data = transformer.transform()
     
-    if not transformed_data.empty:
+    if transformed_data:
         logger.info("Data transformation completed successfully.")
     else:
         logger.error("Data transformation failed.")

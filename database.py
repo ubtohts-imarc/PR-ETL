@@ -1,12 +1,14 @@
+import os
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker, scoped_session
 from sqlalchemy.ext.declarative import declarative_base
+from dotenv import load_dotenv
 
-# Database URL (Modify as per your environment)
-DATABASE_URL = "postgresql+psycopg2://airflow:airflow@postgres:5432/airflow"
+# Load environment variables
+load_dotenv()
 
 # Create the database engine
-engine = create_engine(DATABASE_URL)
+engine = create_engine(os.getenv("AIRFLOW_DATABASE_URL"))
 
 # Create a configured session class
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)

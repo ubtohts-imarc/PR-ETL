@@ -52,6 +52,17 @@ jobs:
       - name: List Airflow DAGs to verify installation
         run: docker exec airflow_web airflow dags list
 
+      - name: Save Docker Image as TAR
+        run: |
+          mkdir -p docker-artifacts
+          docker save airflow_web -o docker-artifacts/airflow_web.tar
+
+      - name: Upload Docker Image Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: airflow_web_image
+          path: docker-artifacts/airflow_web.tar
+
       - name: Shutdown and Cleanup
         if: always()
         run: docker-compose down --volumes --remove-orphans

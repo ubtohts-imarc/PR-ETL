@@ -1,5 +1,7 @@
 import pandas as pd
+from utility.logger import get_logger
 
+logger = get_logger()
 
 class UOMConverter:
     def __init__(self, config: dict):
@@ -11,10 +13,11 @@ class UOMConverter:
         """
         self.conversion_rates = config["conversion_rates"]
         self.si_units = {
-            "days": "month",
-            "energy": "kwh",
+            "days": "mo",
+            "area": "m2",
+            "energy": "kWh",
             "mass": "kg",
-            "volume": "litre",
+            "volume": "L",
         }
 
     def validate_input(self, df: pd.DataFrame):
@@ -27,7 +30,7 @@ class UOMConverter:
         Raises:
             ValueError: If required columns are missing.
         """
-        required_columns = ["Input Price", "Input Quantity Unit"]
+        required_columns = ["price_value", "expected_unit_code"]
         for column in required_columns:
             if column not in df.columns:
                 raise ValueError(f"Missing required column: {column}")
@@ -71,24 +74,21 @@ class UOMConverter:
         """
         self.validate_input(df)
 
-        # Ensure 'Input Price' is numeric
-        df["Input Price"] = df["Input Price"].astype(str).str.replace("RMB", "").str.replace("USD", "").str.replace("CNY", "").str.replace("¥", "").str.replace("$", "").str.replace(",", "").str.strip()
-        df["Input Price"] = pd.to_numeric(df["Input Price"], errors="coerce")
-        if df["Input Price"].isnull().any():
+        if df["price_value"].isnull().any():
             raise ValueError("Input Price contains non-numeric values or invalid data.")
-
-
+        
         # Perform conversion
-        df["final quantity unit"] = df["Input Quantity Unit"].apply(
+        df["final_unit_code"] = df["expected_unit_code"].apply(
             lambda unit: self.convert_to_si_unit(unit)[0]
         )
-        df["Conversion Factor"] = df["Input Quantity Unit"].apply(
+        df["final_quantity"] = df["expected_unit_code"].apply(
             lambda unit: self.convert_to_si_unit(unit)[1]
         )
-        df["final quantity"] = 1 / df["Conversion Factor"]
-        df["final price"] = df["Input Price"] * df["Conversion Factor"]
+
+        df["final_quantity"] = df["expected_quantity"] / df["final_quantity"]
+        df["si_price_value"] = df["price_value"] * df["final_quantity"]
 
         # Drop intermediate column
-        df = df.drop(columns=["Conversion Factor"])
+        df = df.drop(columns=["final_quantity"])
 
         return df

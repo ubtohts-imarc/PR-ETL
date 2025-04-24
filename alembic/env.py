@@ -13,10 +13,10 @@ load_dotenv()
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
 # Import your models here
-from models.metadata import Base as ReferenceBase
-from models.input import Base as InputBase
-from models.raw_data import Base as ScrapedBase
-from models.transformed import Base as TransformedBase
+from models.metadata import Source, Currency, Unit, Location, Product
+from models.input import ProductInput
+from models.raw_data import PriceRaw
+from models.transformed import PriceStandardized
 
 # Alembic Config object
 config = context.config
@@ -74,6 +74,7 @@ def run_migrations_online():
         context.configure(
             connection=connection,
             target_metadata=target_metadata,
+            include_schemas=True,
         )
 
         with context.begin_transaction():

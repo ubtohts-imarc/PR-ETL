@@ -174,7 +174,5 @@ cython_debug/
 .pypirc
 
 # Customized files
-.for_me.md
-main*.py
-folder*.txt
+useful/
 logs/

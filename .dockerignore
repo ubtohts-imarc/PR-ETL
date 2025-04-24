@@ -5,9 +5,5 @@ __pycache__/
 *.pyc
 
 logs/
-
+useful/
 *.md
-main.py
-main_1.py
-main_2.py
-folder_structure.txt

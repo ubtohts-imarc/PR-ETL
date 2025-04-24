@@ -217,12 +217,12 @@ def main():
         logger.error("Failed to load configuration. Exiting.")
         return False
     
-    extractor = SunsirsExtractor()
-    extracted_data = extractor.extract()
-    if extracted_data:
-        logger.info("Data extraction completed successfully.")
-    else:
-        logger.error("Data extraction failed.")
+    # extractor = SunsirsExtractor()
+    # extracted_data = extractor.extract()
+    # if extracted_data:
+    #     logger.info("Data extraction completed successfully.")
+    # else:
+    #     logger.error("Data extraction failed.")
 
     transformer = SunsirsTransformer()
     transformed_data = transformer.transform()

@@ -1,5 +1,6 @@
 from sqlalchemy.orm import Session, joinedload
 from models.raw_data import PriceRaw
+from models.metadata import Product, Source
 from models.input import ProductInput
 from utility.logger import get_logger
 from loader.base_loader import BaseLoader
@@ -11,39 +12,47 @@ logger = get_logger()
 class RawPriceFetcher(BaseLoader):
     def __init__(self, website_name: str):
         super().__init__()
-        self.website_name = website_name.strip().lower()
+        self.source_name = website_name.strip().lower()
 
     def fetch(self) -> pd.DataFrame:
         try:
-            logger.info(f"Fetching data for website: {self.website_name}")
+            logger.info(f"Fetching data for website: {self.source_name}")
 
-            # Fetch PriceRaw records joined with ProductInput
+            # Full join with relationships for eager load of unit/currency
             query = (
-                self.session.query(PriceRaw, ProductInput)
+                self.session.query(PriceRaw)
                 .join(ProductInput, ProductInput.id == PriceRaw.product_config_id)
-                .filter(PriceRaw.source_name == self.website_name)
-                # .options(joinedload(PriceRaw.product_config))  # Optional, eager loading
+                .join(Source, Source.id == PriceRaw.source_id)
+                .options(
+                    joinedload(PriceRaw.product_input).joinedload(ProductInput.currency),
+                    joinedload(PriceRaw.product_input).joinedload(ProductInput.unit)
+                )
+                .filter(Source.name == self.source_name)
             )
 
             results = query.all()
             logger.info(f"Fetched {len(results)} records.")
 
-            # Convert to list of dicts
             data = []
-            for price_raw, input_config in results:
+            for row in results:
+                input_config = row.product_input
                 data.append({
-                    "price_date": price_raw.price_date,
-                    "price_value": float(price_raw.price_value),
-                    "product_category": price_raw.product_category,
-                    "product_config_id": price_raw.product_config_id,
-                    "expected_currency_code": input_config.expected_currency_code,
-                    "expected_unit_code": input_config.expected_unit_code,
+                    "id": row.id,
+                    "price_date": row.price_date,
+                    "price_value": float(row.price_value),
+                    "product_category": row.product_category,
+                    "product_config_id": row.product_config_id,
+                    "expected_currency_id": input_config.expected_currency_id,
+                    "expected_currency_code": input_config.currency.code if input_config.currency else None,
+                    "expected_unit_id": input_config.expected_unit_id,
+                    "expected_unit_code": input_config.unit.code if input_config.unit else None,
                     "expected_quantity": float(input_config.expected_quantity),
                     "location_id": input_config.location_id,
                 })
 
             df = pd.DataFrame(data)
             logger.info(f"Created DataFrame with shape: {df.shape}")
+            logger.info(f"Created DataFrame with shape: {df.head(5)}")
             return df
 
         except Exception as e:

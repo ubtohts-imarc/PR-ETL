@@ -1,22 +1,20 @@
 from typing import Dict, Any, List
 import pandas as pd
-from bs4 import BeautifulSoup
 from datetime import datetime
 from dateutil import parser
 import re
 
-from extract.base_extractor import BaseExtractor
-from loader.base_loader import BaseLoader
-from transform.base_transformer import BaseTransformer
+from core.extract.base_extractor import BaseExtractor
+from core.transform.base_transformer import BaseTransformer
+from core.loader.raw_data_store import RawPriceWriter
+from core.loader.raw_data_reader import RawPriceFetcher
+from core.loader.transformed_data_store import StandardizedPriceWriter
+
 from utility.logger import get_logger
 from utility.yaml_loader import load_yaml_config
 
-from loader.raw_data_store import RawPriceWriter
-from loader.raw_data_reader import RawPriceFetcher
-from loader.transformed_data_store import StandardizedPriceWriter
-
 logger = get_logger()
-config = load_yaml_config("config/websites/sunsirs.yaml")
+config = load_yaml_config("core/config/websites/sunsirs.yaml")
 
 class SunsirsTransformer(BaseTransformer):
     def transform(self) -> Dict[str, Any]:

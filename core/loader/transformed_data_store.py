@@ -1,7 +1,6 @@
-from sqlalchemy.orm import Session
-from models.transformed import PriceStandardized
-from models.metadata import Product
-from loader.base_loader import BaseLoader
+from sqlalchemy.exc import IntegrityError
+from db.models.transformed import PriceStandardized
+from core.loader.base_loader import BaseLoader
 from datetime import datetime
 import pandas as pd
 from utility.logger import get_logger
@@ -15,12 +14,14 @@ class StandardizedPriceWriter(BaseLoader):
         self.source_name = source_name.strip().lower()
 
     def save(self):
+        success_count = 0
+        skip_count = 0
+        fail_count = 0
         try:
-            records = []
             for _, row in self.df.iterrows():
                 try:
                     source_obj = self.get_or_create_source(self.source_name)
-                    logger.info(f"Source object: {source_obj}")
+                    # logger.info(f"Source object: {source_obj}")
                     if not source_obj:
                         logger.warning(f"Source '{self.source_name}' not found in metadata.")
                         continue
@@ -39,18 +40,25 @@ class StandardizedPriceWriter(BaseLoader):
                         unit_id=int(unit_id),
                         price_usd=float(row.get("price_value")),
                         source_date=pd.to_datetime(row.get("price_date")).date(),
+                        raw_data_id=int(row.get("id")) if row.get("id") else None,
                         last_update=datetime.utcnow()
                     )
-                    records.append(record)
-                except Exception as row_error:
-                    logger.warning(f"Skipping row due to error: {row_error}. Row: {row.to_dict()}")
-            
-            if records:
-                self.session.add_all(records)
-                self.session.commit()
-                logger.info(f"Inserted {len(records)} records into transformed.products_transformed_data")
-            else:
-                logger.warning("No records to insert.")
+                    self.session.add(record)
+                    self.session.commit()
+                    success_count += 1
+
+                except IntegrityError as ie:
+                    self.session.rollback()
+                    logger.warning(f"Duplicate skipped: {source_obj} on {row.get("price_date")}")
+                    skip_count += 1
+
+                except Exception as e:
+                    self.session.rollback()
+                    logger.error(f"Failed row: {source_obj} on {row.get("price_date")} → {str(e)}")
+                    fail_count += 1
+
+            logger.info(f"Inserted: {success_count}, Duplicates Skipped: {skip_count}, Failed: {fail_count}")
+            return True if success_count else False
 
         except Exception as e:
             logger.error(f"Error saving standardized prices: {str(e)}")

@@ -5,7 +5,7 @@ import requests
 from requests.exceptions import HTTPError, Timeout, RequestException
 import pandas as pd
 
-from extract.table_extractor import TableExtractor
+from core.extract.table_extractor import TableExtractor
 from utility.logger import get_logger
 
 logger = get_logger()

@@ -1,6 +1,6 @@
 from sqlalchemy import Column, Integer, String, Date, DECIMAL, ForeignKey, DateTime, func, UniqueConstraint
 from sqlalchemy.orm import relationship
-from models.base import Base
+from db.models.base import Base
 
 class PriceRaw(Base):
     __tablename__ = "products_raw_data"

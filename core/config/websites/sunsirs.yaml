@@ -1,5 +1,5 @@
 name: "sunsirs_monitor"
-start_date: '2025-04-20'
+start_date: '2025-01-01'
 base_url: "https://www.sunsirs.com/uk/sdetail-day-REPLACEDATEHERE.html"
 required_headers : ["Commodity", "Sectors"]
 

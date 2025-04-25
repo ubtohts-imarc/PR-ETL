@@ -2,7 +2,7 @@ from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker, Session
 from dotenv import load_dotenv
 from sqlalchemy.exc import NoResultFound
-from models.metadata import Source, Unit
+from db.models.metadata import Source, Unit
 import os
 from utility.logger import get_logger
 
@@ -40,7 +40,7 @@ class BaseLoader:
             if not unit:
                 logger.warning(f"Unit not found for code: '{unit_code}'")
                 return None
-            logger.info(f"Unit found for code '{unit_code}': {unit.id}")
+            # logger.info(f"Unit found for code '{unit_code}': {unit.id}")
             return unit.id
         except Exception as e:
             logger.error(f"Error fetching unit for code '{unit_code}': {str(e)}")

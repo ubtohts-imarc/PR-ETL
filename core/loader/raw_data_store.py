@@ -1,10 +1,8 @@
-from sqlalchemy import and_, tuple_
-from sqlalchemy.orm import Session
 from sqlalchemy.exc import IntegrityError
-from models.input import ProductInput
-from models.raw_data import PriceRaw
-from models.metadata import Product, Source
-from loader.base_loader import BaseLoader
+from db.models.input import ProductInput
+from db.models.raw_data import PriceRaw
+from db.models.metadata import Product, Source
+from core.loader.base_loader import BaseLoader
 from datetime import datetime
 import pandas as pd
 from utility.logger import get_logger
@@ -82,11 +80,11 @@ class RawPriceWriter(BaseLoader):
                     logger.error(f"Failed row: {product_name} on {price_date} → {str(e)}")
                     fail_count += 1
 
-            logger.info(f"✅ Done. Inserted: {success_count}, Duplicates Skipped: {skip_count}, Failed: {fail_count}")
+            logger.info(f"Inserted: {success_count}, Duplicates Skipped: {skip_count}, Failed: {fail_count}")
             return True if success_count else False
 
         except Exception as e:
-            logger.error(f"❌ Total failure: {str(e)}")
+            logger.error(f"Total failure: {str(e)}")
             self.session.rollback()
             return False
 

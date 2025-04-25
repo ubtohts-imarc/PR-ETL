@@ -1,5 +1,5 @@
 from sqlalchemy import Column, Integer, String, DateTime, func
-from models.base import Base
+from db.models.base import Base
 
 class Source(Base):
     __tablename__ = "source"

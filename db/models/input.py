@@ -1,6 +1,6 @@
 from sqlalchemy import Column, Integer, String, DECIMAL, Boolean, Text, ForeignKey, DateTime, func, UniqueConstraint
 from sqlalchemy.orm import relationship
-from models.base import Base
+from db.models.base import Base
 
 class ProductInput(Base):
     __tablename__ = "products_input_data"

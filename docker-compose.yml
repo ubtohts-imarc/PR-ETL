@@ -74,7 +74,7 @@ services:
     container_name: alembic_migration
     working_dir: /opt/airflow/db
     environment:
-      - PR_DATABASE_URL=postgresql+psycopg2://avnadmin:AVNS_4Q4liU8s_bOxdz0wskh@pg-aa7ec61-chauhanrajsinh555-15aa.g.aivencloud.com:20134/defaultdb
+      - PR_DATABASE_URL=${PR_DATABASE_URL}
       - PYTHONPATH=/opt/airflow
     entrypoint: /bin/bash
     command:
@@ -105,7 +105,7 @@ services:
     ports:
       - "8000:8000"
     environment:
-      - PR_DATABASE_URL=postgresql+psycopg2://postgres:Appy1585@host.docker.internal:5436/etl_pipeline
+      - PR_DATABASE_URL=${PR_DATABASE_URL}
       - PYTHONPATH=/app
     restart: always
 

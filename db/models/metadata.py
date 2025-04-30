@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, Float, String, ForeignKey, DateTime, Date, Text, func, UniqueConstraint
+from sqlalchemy import Column, Integer, Float, String, Boolean, ForeignKey, DateTime, Date, Text, func, UniqueConstraint
 from sqlalchemy.orm import relationship
 from db.models.base import Base
 
@@ -77,6 +77,7 @@ class Currency(Base):
     id = Column(Integer, primary_key=True)
     code = Column(String(10), unique=True, nullable=False)
     name = Column(String(100), nullable=False)
+    need_to_scrape = Column(Boolean, default=False)
     last_update = Column(DateTime, server_default=func.now(), onupdate=func.now())
 
     def __str__(self):

@@ -31,11 +31,11 @@ from db.models.transformed import PriceStandardized
 
 # Alembic Config object
 config = context.config
-config.set_main_option('sqlalchemy.url', env_config("DATABASE_URL"))
+config.set_main_option('sqlalchemy.url', env_config("PR_DATABASE_URL"))
 
 # Log the database connection URL (for debugging purposes)
 print(f"Connecting to AIRFLOW database at {env_config('AIRFLOW_DATABASE_URL')}")
-print(f"Connecting to ETL database at {env_config('DATABASE_URL')}")
+print(f"Connecting to ETL database at {env_config('PR_DATABASE_URL')}")
 
 # Set up logging
 if config.config_file_name is not None:

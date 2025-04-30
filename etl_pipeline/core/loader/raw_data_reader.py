@@ -42,11 +42,11 @@ class RawPriceFetcher(BaseLoader):
                     "price_value": float(row.price_value),
                     "product_category": row.product_category,
                     "product_config_id": row.product_config_id,
-                    "expected_currency_id": input_config.expected_currency_id,
+                    "input_currency_id": input_config.input_currency_id,
                     "expected_currency_code": input_config.currency.code if input_config.currency else None,
-                    "expected_unit_id": input_config.expected_unit_id,
+                    "input_unit_id": input_config.input_unit_id,
                     "expected_unit_code": input_config.unit.code if input_config.unit else None,
-                    "expected_quantity": float(input_config.expected_quantity),
+                    "input_quantity": float(input_config.input_quantity),
                     "location_id": input_config.location_id,
                 })
 

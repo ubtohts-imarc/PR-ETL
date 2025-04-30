@@ -70,9 +70,9 @@ class ProductInputExcelLoader(BaseLoader):
                 input_obj = ProductInput(
                     product_id=product_id,
                     location_id=location_id,
-                    expected_unit_id=unit_id,
-                    expected_currency_id=currency_id,
-                    expected_quantity=quantity,
+                    input_unit_id=unit_id,
+                    input_currency_id=currency_id,
+                    input_quantity=quantity,
                     source_id=source_id,
                     upload_on_pr=str(row.get("Upload on PR")).strip().lower() == "true"
                 )

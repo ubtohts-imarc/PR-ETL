@@ -5,13 +5,13 @@ from decouple import config
 from db.models.base import Base
 
 # Read DB URL
-DATABASE_URL = config("DATABASE_URL")
-if not DATABASE_URL:
-    raise ValueError("DATABASE_URL environment variable not set")
+PR_DATABASE_URL = config("PR_DATABASE_URL")
+if not PR_DATABASE_URL:
+    raise ValueError("PR_DATABASE_URL environment variable not set")
 
 # Create engine
 engine = create_engine(
-    DATABASE_URL,
+    PR_DATABASE_URL,
     echo=False,
     pool_pre_ping=True,
 )

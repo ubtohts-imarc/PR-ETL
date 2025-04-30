@@ -21,7 +21,7 @@ class UOMConverter:
         """
         Validate required columns in DataFrame.
         """
-        required_columns = ["price_value", "expected_unit_code", "expected_quantity"]
+        required_columns = ["price_value", "expected_unit_code", "input_quantity"]
         for column in required_columns:
             if column not in df.columns:
                 raise ValueError(f"Missing required column: {column}")
@@ -53,7 +53,7 @@ class UOMConverter:
         for index, row in df.iterrows():
             try:
                 unit = row["expected_unit_code"]
-                quantity = row["expected_quantity"]
+                quantity = row["input_quantity"]
                 price = row["price_value"]
 
                 si_unit, factor = self.convert_to_si_unit(unit)

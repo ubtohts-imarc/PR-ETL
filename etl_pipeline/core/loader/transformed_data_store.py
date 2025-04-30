@@ -38,7 +38,7 @@ class StandardizedPriceWriter(BaseLoader):
                         source_id=source_obj.id,
                         product_id=int(row.get("product_config_id")),
                         location_id=int(row.get("location_id")) if row.get("location_id") else None,
-                        quantity=float(row.get("expected_quantity")) if row.get("expected_quantity") else None,
+                        quantity=float(row.get("input_quantity")) if row.get("input_quantity") else None,
                         unit_id=int(unit_id),
                         price_usd=float(row.get("price_value")),
                         source_date=pd.to_datetime(row.get("price_date")).date(),

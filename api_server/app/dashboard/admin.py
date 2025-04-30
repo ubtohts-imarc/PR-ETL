@@ -19,7 +19,7 @@ def setup_admin(app: FastAPI):
             "id",
             "source.name",
             "product.name",
-            "expected_quantity",
+            "input_quantity",
             "currency.code",
             "unit.code",
             "location.name",

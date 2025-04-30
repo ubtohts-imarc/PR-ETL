@@ -34,9 +34,6 @@ jobs:
         run: |
           cat <<EOF > .env
           AIRFLOW_UID=${{ secrets.AIRFLOW_UID }}
-          POSTGRES_USER=${{ secrets.POSTGRES_USER }}
-          POSTGRES_PASSWORD=${{ secrets.POSTGRES_PASSWORD }}
-          POSTGRES_DB=${{ secrets.POSTGRES_DB }}
           AIRFLOW_USERNAME=${{ secrets.AIRFLOW_USERNAME }}
           AIRFLOW_PASSWORD=${{ secrets.AIRFLOW_PASSWORD }}
           AIRFLOW_FIRSTNAME=${{ secrets.AIRFLOW_FIRSTNAME }}

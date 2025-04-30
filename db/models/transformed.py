@@ -2,6 +2,8 @@ from sqlalchemy import Column, Integer, String, Date, DECIMAL, ForeignKey, DateT
 from sqlalchemy.orm import relationship
 from db.models.base import Base
 
+# To store all the data for products
+# i.e: (sunsirs, Hydrofluoric acid, 2025-04-01, 1000.0000, 1, Non-ferrous metals)
 class PriceStandardized(Base):
     __tablename__ = "products_standard_data"
     __table_args__ = (
@@ -26,7 +28,13 @@ class PriceStandardized(Base):
     raw_data_id = Column(Integer, ForeignKey("raw_data.products_raw_data.id"), nullable=True)
     last_update = Column(DateTime, server_default=func.now(), onupdate=func.now())
 
-    product = relationship("models.metadata.Product", primaryjoin="models.metadata.Product.id == PriceStandardized.product_id")
-    source = relationship("models.metadata.Source", primaryjoin="models.metadata.Source.id == PriceStandardized.source_id")
-    location = relationship("models.metadata.Location", primaryjoin="models.metadata.Location.id == PriceStandardized.location_id")
-    unit = relationship("models.metadata.Unit", primaryjoin="models.metadata.Unit.id == PriceStandardized.unit_id")
+    product = relationship("db.models.metadata.Product", primaryjoin="db.models.metadata.Product.id == PriceStandardized.product_id")
+    source = relationship("db.models.metadata.Source", primaryjoin="db.models.metadata.Source.id == PriceStandardized.source_id")
+    location = relationship("db.models.metadata.Location", primaryjoin="db.models.metadata.Location.id == PriceStandardized.location_id")
+    unit = relationship("db.models.metadata.Unit", primaryjoin="db.models.metadata.Unit.id == PriceStandardized.unit_id")
+
+    def __str__(self):
+        return f"{self.product.name} - {self.location.name} - {self.unit.code} - {self.price_usd}"
+    
+    def __repr__(self):
+        return f"<PriceStandardized(id={self.id}, product_id={self.product_id}, location_id={self.location_id}, price_usd={self.price_usd})>"

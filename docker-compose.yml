@@ -1,43 +1,23 @@
 x-common-env: &common-env
   AIRFLOW__CORE__EXECUTOR: LocalExecutor
-  AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: postgresql+psycopg2://airflow:airflow@postgres/airflow
   AIRFLOW__CORE__FERNET_KEY: ''
   AIRFLOW__CORE__LOAD_EXAMPLES: 'false'
   AIRFLOW__CORE__DAG_DISCOVERY_SAFE_MODE: 'false'
-  PYTHONPATH: /opt/airflow
-  AIRFLOW__CORE__DAGS_FOLDER: /opt/airflow/airflow/dags
+  PYTHONPATH: /opt/airflow/etl_pipeline
+  AIRFLOW__CORE__DAGS_FOLDER: /opt/airflow/etl_pipeline/airflow/dags
 
 services:
-  postgres:
-    image: postgres:13
-    container_name: postgres_db
-    restart: always
-    env_file: .env
-    environment:
-      POSTGRES_USER: airflow
-      POSTGRES_PASSWORD: airflow
-      POSTGRES_DB: airflow
-    ports:
-      - "5432:5432"
-    volumes:
-      - postgres-db-volume:/var/lib/postgresql/data
-    healthcheck:
-      test: ["CMD", "pg_isready", "-U", "airflow"]
-      interval: 5s
-      retries: 5
-
   airflow-webserver:
     build:
       context: .
-      dockerfile: Dockerfile
+      dockerfile: Dockerfile.etl
     container_name: airflow_web
-    depends_on:
-      - postgres
-      - airflow-init
     ports:
       - "8080:8080"
     environment:
       <<: *common-env
+      AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: ${AIRFLOW_DATABASE_URL}
+      PYTHONPATH : /opt/airflow
     command: webserver
     healthcheck:
       test: ["CMD", "curl", "--fail", "http://localhost:8080/health"]
@@ -48,13 +28,15 @@ services:
   airflow-scheduler:
     build:
       context: .
-      dockerfile: Dockerfile
+      dockerfile: Dockerfile.etl
     container_name: airflow_scheduler
     depends_on:
       - airflow-webserver
       - airflow-init
     environment:
       <<: *common-env
+      AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: ${AIRFLOW_DATABASE_URL}
+      PYTHONPATH : /opt/airflow
     command: scheduler
     healthcheck:
       test: ["CMD", "curl", "--fail", "http://localhost:8080/health"]
@@ -65,12 +47,11 @@ services:
   airflow-init:
     build:
       context: .
-      dockerfile: Dockerfile
+      dockerfile: Dockerfile.etl
     container_name: airflow_init
-    depends_on:
-      - postgres
     environment:
       <<: *common-env
+      AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: ${AIRFLOW_DATABASE_URL}
     entrypoint: /bin/bash
     command:
       - -c
@@ -85,6 +66,48 @@ services:
           --email "$AIRFLOW_EMAIL" \
           --password "$AIRFLOW_PASSWORD"
     restart: on-failure
+
+  alembic-migration:
+    build:
+      context: .
+      dockerfile: Dockerfile.etl
+    container_name: alembic_migration
+    working_dir: /opt/airflow/db
+    environment:
+      - DATABASE_URL=postgresql+psycopg2://postgres:Appy1585@host.docker.internal:5436/etl_pipeline
+      - PYTHONPATH=/opt/airflow
+    entrypoint: /bin/bash
+    command:
+      - -c
+      - |
+        echo "Running Alembic Migration..."
+        alembic revision --autogenerate -m "Auto migration"
+        alembic upgrade head
+    restart: on-failure
+
+  redis:
+    image: redis:6
+    container_name: redis_service
+    restart: always
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  api-server:
+    build:
+      context: .
+      dockerfile: Dockerfile.api
+    container_name: fastapi_server
+    ports:
+      - "8000:8000"
+    environment:
+      - DATABASE_URL=postgresql+psycopg2://postgres:Appy1585@host.docker.internal:5436/etl_pipeline
+      - PYTHONPATH=/app
+    restart: always
 
 volumes:
   postgres-db-volume:

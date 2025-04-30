@@ -1,0 +1,25 @@
+# Dockerfile
+FROM apache/airflow:2.10.5
+
+# Use airflow user from the beginning itself
+USER airflow
+
+WORKDIR /opt/airflow
+
+COPY requirements.etl.txt requirements.txt
+
+# Install requirements as airflow user
+RUN pip install --no-cache-dir -r requirements.txt
+
+# Copy your application code
+COPY db/ db/
+COPY etl_pipeline/ etl_pipeline/
+COPY utility/ utility/
+COPY .env .
+
+# Fix permissions AFTER copying
+USER root
+RUN chown -R airflow /opt/airflow/db/alembic/versions
+
+# (optional, but good practice)
+USER airflow

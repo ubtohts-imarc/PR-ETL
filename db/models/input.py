@@ -2,6 +2,8 @@ from sqlalchemy import Column, Integer, String, DECIMAL, Boolean, Text, ForeignK
 from sqlalchemy.orm import relationship
 from db.models.base import Base
 
+# To store all the input data for products
+# i.e: (sunsirs, None, Hydrofluoric acid, False, INR, tonne, 1.0000, India)
 class ProductInput(Base):
     __tablename__ = "products_input_data"
     __table_args__ =(
@@ -26,8 +28,14 @@ class ProductInput(Base):
     location_id = Column(Integer, ForeignKey("metadata.location.id"), nullable=True)
     last_update = Column(DateTime, server_default=func.now(), onupdate=func.now())
     
-    product = relationship("models.metadata.Product", backref="input_configs", primaryjoin="models.metadata.Product.id == ProductInput.product_id")
-    source = relationship("models.metadata.Source", primaryjoin="models.metadata.Source.id == ProductInput.source_id")
-    currency = relationship("models.metadata.Currency", primaryjoin="models.metadata.Currency.id == ProductInput.expected_currency_id")
-    unit = relationship("models.metadata.Unit", primaryjoin="models.metadata.Unit.id == ProductInput.expected_unit_id")
-    location = relationship("models.metadata.Location", primaryjoin="models.metadata.Location.id == ProductInput.location_id")
+    product = relationship("db.models.metadata.Product", backref="input_configs", primaryjoin="db.models.metadata.Product.id == ProductInput.product_id")
+    source = relationship("db.models.metadata.Source", primaryjoin="db.models.metadata.Source.id == ProductInput.source_id")
+    currency = relationship("db.models.metadata.Currency", primaryjoin="db.models.metadata.Currency.id == ProductInput.expected_currency_id")
+    unit = relationship("db.models.metadata.Unit", primaryjoin="db.models.metadata.Unit.id == ProductInput.expected_unit_id")
+    location = relationship("db.models.metadata.Location", primaryjoin="db.models.metadata.Location.id == ProductInput.location_id")
+
+    def __str__(self):
+        return f"{self.product.name} - {self.location.name} - {self.unit.code} - {self.expected_quantity}"
+    
+    def __repr__(self):
+        return f"<ProductInput(id={self.id}, product_id={self.product_id}, location_id={self.location_id}, expected_unit_id={self.expected_unit_id})>"

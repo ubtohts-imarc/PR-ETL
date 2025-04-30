@@ -2,6 +2,8 @@ from sqlalchemy import Column, Integer, String, Date, DECIMAL, ForeignKey, DateT
 from sqlalchemy.orm import relationship
 from db.models.base import Base
 
+# To store all the raw data for products
+# i.e: (sunsirs, Hydrofluoric acid, 2025-04-01, 1000.0000, 1, Non-ferrous metals)
 class PriceRaw(Base):
     __tablename__ = "products_raw_data"
     __table_args__ = (
@@ -22,6 +24,12 @@ class PriceRaw(Base):
     product_category = Column(String(100), nullable=True)
     last_update = Column(DateTime, server_default=func.now(), onupdate=func.now())
 
-    product_input = relationship("models.input.ProductInput", backref="raw_prices", primaryjoin="models.input.ProductInput.id == PriceRaw.product_config_id")
-    source = relationship("models.metadata.Source", primaryjoin="models.metadata.Source.id == PriceRaw.source_id")
-    standard_price = relationship("models.transformed.PriceStandardized", backref="raw_data", uselist=False, primaryjoin="PriceRaw.id == models.transformed.PriceStandardized.raw_data_id")
+    product_input = relationship("db.models.input.ProductInput", backref="raw_prices", primaryjoin="db.models.input.ProductInput.id == PriceRaw.product_config_id")
+    source = relationship("db.models.metadata.Source", primaryjoin="db.models.metadata.Source.id == PriceRaw.source_id")
+    standard_price = relationship("db.models.transformed.PriceStandardized", backref="raw_data", uselist=False, primaryjoin="PriceRaw.id == db.models.transformed.PriceStandardized.raw_data_id")
+
+    def __str__(self):
+        return f"{self.product_input.product.name} - {self.price_date} - {self.price_value}"
+    
+    def __repr__(self):
+        return f"<PriceRaw(id={self.id}, product_config_id={self.product_config_id}, price_date={self.price_date}, price_value={self.price_value})>"
